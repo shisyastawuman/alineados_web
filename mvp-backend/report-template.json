@@ -1,0 +1,44 @@
+{
+  "_comment": "Cada sección tiene varios candidates; se usa el PRIMERO cuyo 'when' cumple. Texto admite placeholders {{clave}} del contexto (ver reportTemplate.ts).",
+  "sections": [
+    {
+      "id": "opening",
+      "candidates": [
+        {
+          "when": {"alignmentPctGte": 75 },
+          "text": "Un nivel de alineación alto es muy bueno."
+        },
+        {
+          "when": {"alignmentPctGte": 50 },
+          "text": "Un nivel de alineación medio es normal."
+        },
+        {
+          "when": {"alignmentPctGte": 25 },
+          "text": "Un nivel de alineación bajo es preocupante."
+        },
+        {
+          "when": true,
+          "text": "Un nivel de alineación nulo es crítico."
+        }
+      ]
+    },
+    {
+      "id": "metrics_block",
+      "candidates": [
+        {
+          "when": true,
+          "text": "Métricas al inicio: {{metricsInitial}}. Métricas al cierre: {{metricsFinal}}. La evolución refleja las decisiones del líder y el clima vivido en la jugada."
+        }
+      ]
+    },
+    {
+      "id": "closing",
+      "candidates": [
+        {
+          "when": true,
+          "text": "Reporte generado automáticamente el {{generatedAt}}. Los gráficos adjuntos resumen el estado final por dimensión."
+        }
+      ]
+    }
+  ]
+}

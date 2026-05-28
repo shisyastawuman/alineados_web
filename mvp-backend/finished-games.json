@@ -1,0 +1,304 @@
+{
+  "games": [
+    {
+      "id": "ec1cdc29-c602-43f8-90aa-9c14f76437d1",
+      "finishedAt": "2026-05-15T18:19:20.349Z",
+      "roomCode": "982AC8",
+      "adminId": "dfe8f35c-573c-4b82-bf20-69ac3aef6bfe",
+      "players": [
+        {
+          "id": "b882a266-af59-4b9c-a80f-a588011b73b6",
+          "username": "LUCHO",
+          "role": "LEADER"
+        },
+        {
+          "id": "5d59be85-0812-4b06-9f55-c70a5e9e61cf",
+          "username": "MARIO",
+          "role": "PARTICIPANT"
+        },
+        {
+          "id": "6942fd97-5e14-4618-9745-82b14bfab9b4",
+          "username": "SARA",
+          "role": "PARTICIPANT"
+        }
+      ],
+      "initialMetrics": {
+        "stressLeader": 0,
+        "performance": 0,
+        "relationship": 0,
+        "stressJunior": 0
+      },
+      "finalMetrics": {
+        "stressLeader": 2,
+        "performance": 0,
+        "relationship": 1,
+        "stressJunior": 0
+      },
+      "alignmentHits": 2,
+      "roundHistory": [
+        {
+          "situationId": "sit_006",
+          "situationTitle": "ENCUENTRO CON ANDRÉS",
+          "leaderChoice": "A",
+          "predictedChoice": "A",
+          "isAligned": true,
+          "consequenceText": "Consecuencia placeholder: la historia se ajusta según \"LE PEGÁS UN BIFE\".",
+          "playerVotes": [
+            {
+              "playerId": "b882a266-af59-4b9c-a80f-a588011b73b6",
+              "username": "LUCHO",
+              "role": "LEADER",
+              "optionId": "A"
+            },
+            {
+              "playerId": "5d59be85-0812-4b06-9f55-c70a5e9e61cf",
+              "username": "MARIO",
+              "role": "PARTICIPANT",
+              "optionId": "D"
+            },
+            {
+              "playerId": "6942fd97-5e14-4618-9745-82b14bfab9b4",
+              "username": "SARA",
+              "role": "PARTICIPANT",
+              "optionId": "C"
+            }
+          ]
+        },
+        {
+          "situationId": "sit_001",
+          "situationTitle": "Dilema",
+          "leaderChoice": "A",
+          "predictedChoice": "C",
+          "isAligned": false,
+          "consequenceText": "Consecuencia placeholder: la historia se ajusta según \"A. Estrés del líder +1\".",
+          "playerVotes": [
+            {
+              "playerId": "b882a266-af59-4b9c-a80f-a588011b73b6",
+              "username": "LUCHO",
+              "role": "LEADER",
+              "optionId": "A"
+            },
+            {
+              "playerId": "5d59be85-0812-4b06-9f55-c70a5e9e61cf",
+              "username": "MARIO",
+              "role": "PARTICIPANT",
+              "optionId": "B"
+            },
+            {
+              "playerId": "6942fd97-5e14-4618-9745-82b14bfab9b4",
+              "username": "SARA",
+              "role": "PARTICIPANT",
+              "optionId": "C"
+            }
+          ]
+        },
+        {
+          "situationId": "sit_005",
+          "situationTitle": "ENCUENTRO CON NERÓN",
+          "leaderChoice": "B",
+          "predictedChoice": "B",
+          "isAligned": true,
+          "consequenceText": "Consecuencia placeholder: la historia se ajusta según \"LO IGNORÁS\".",
+          "playerVotes": [
+            {
+              "playerId": "b882a266-af59-4b9c-a80f-a588011b73b6",
+              "username": "LUCHO",
+              "role": "LEADER",
+              "optionId": "B"
+            },
+            {
+              "playerId": "5d59be85-0812-4b06-9f55-c70a5e9e61cf",
+              "username": "MARIO",
+              "role": "PARTICIPANT",
+              "optionId": "A"
+            },
+            {
+              "playerId": "6942fd97-5e14-4618-9745-82b14bfab9b4",
+              "username": "SARA",
+              "role": "PARTICIPANT",
+              "optionId": "C"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "c8ebd4df-f783-4076-8815-52db1ada3a6a",
+      "finishedAt": "2026-05-14T16:53:58.240Z",
+      "roomCode": "65AC7E",
+      "adminId": "cd55d4a6-36f1-4222-899e-d42e9dd8279a",
+      "players": [
+        {
+          "id": "0074db51-ea64-4a08-a02d-e895bad1156c",
+          "username": "PEPE",
+          "role": "LEADER"
+        },
+        {
+          "id": "631f2a60-9746-4ea1-8688-60ac6e505497",
+          "username": "MARIO",
+          "role": "PARTICIPANT"
+        },
+        {
+          "id": "3804bc51-d666-40b1-9182-a83525240a09",
+          "username": "LALA",
+          "role": "PARTICIPANT"
+        }
+      ],
+      "initialMetrics": {
+        "stressLeader": 0,
+        "performance": 0,
+        "relationship": 0,
+        "stressJunior": 0
+      },
+      "finalMetrics": {
+        "stressLeader": -1,
+        "performance": 1,
+        "relationship": 5,
+        "stressJunior": 0
+      },
+      "alignmentHits": 3,
+      "roundHistory": [
+        {
+          "situationId": "sit_001",
+          "situationTitle": "Dilema",
+          "leaderChoice": "B",
+          "predictedChoice": "B",
+          "isAligned": true,
+          "consequenceText": "Consecuencia placeholder: la historia se ajusta según \"B. Performance del líder +1\".",
+          "playerVotes": [
+            {
+              "playerId": "0074db51-ea64-4a08-a02d-e895bad1156c",
+              "username": "PEPE",
+              "role": "LEADER",
+              "optionId": "B"
+            },
+            {
+              "playerId": "631f2a60-9746-4ea1-8688-60ac6e505497",
+              "username": "MARIO",
+              "role": "PARTICIPANT",
+              "optionId": "A"
+            },
+            {
+              "playerId": "3804bc51-d666-40b1-9182-a83525240a09",
+              "username": "LALA",
+              "role": "PARTICIPANT",
+              "optionId": "B"
+            }
+          ]
+        },
+        {
+          "situationId": "sit_002",
+          "situationTitle": "Encuentro inesperado",
+          "leaderChoice": "C",
+          "predictedChoice": "C",
+          "isAligned": true,
+          "consequenceText": "Consecuencia placeholder: la historia se ajusta según \"C. Vínculo con el líder +2\".",
+          "playerVotes": [
+            {
+              "playerId": "0074db51-ea64-4a08-a02d-e895bad1156c",
+              "username": "PEPE",
+              "role": "LEADER",
+              "optionId": "C"
+            },
+            {
+              "playerId": "631f2a60-9746-4ea1-8688-60ac6e505497",
+              "username": "MARIO",
+              "role": "PARTICIPANT",
+              "optionId": "A"
+            },
+            {
+              "playerId": "3804bc51-d666-40b1-9182-a83525240a09",
+              "username": "LALA",
+              "role": "PARTICIPANT",
+              "optionId": "A"
+            }
+          ]
+        },
+        {
+          "situationId": "sit_003",
+          "situationTitle": "Decisión extrema",
+          "leaderChoice": "D",
+          "predictedChoice": "A",
+          "isAligned": false,
+          "consequenceText": "Consecuencia placeholder: la historia se ajusta según \"D. Vínculo con el líder +3\".",
+          "playerVotes": [
+            {
+              "playerId": "0074db51-ea64-4a08-a02d-e895bad1156c",
+              "username": "PEPE",
+              "role": "LEADER",
+              "optionId": "D"
+            },
+            {
+              "playerId": "631f2a60-9746-4ea1-8688-60ac6e505497",
+              "username": "MARIO",
+              "role": "PARTICIPANT",
+              "optionId": "D"
+            },
+            {
+              "playerId": "3804bc51-d666-40b1-9182-a83525240a09",
+              "username": "LALA",
+              "role": "PARTICIPANT",
+              "optionId": "D"
+            }
+          ]
+        },
+        {
+          "situationId": "sit_004",
+          "situationTitle": "La última prueba",
+          "leaderChoice": "B",
+          "predictedChoice": "B",
+          "isAligned": true,
+          "consequenceText": "Consecuencia placeholder: la historia se ajusta según \"Estrés del líder -3\".",
+          "playerVotes": [
+            {
+              "playerId": "0074db51-ea64-4a08-a02d-e895bad1156c",
+              "username": "PEPE",
+              "role": "LEADER",
+              "optionId": "B"
+            },
+            {
+              "playerId": "631f2a60-9746-4ea1-8688-60ac6e505497",
+              "username": "MARIO",
+              "role": "PARTICIPANT",
+              "optionId": "B"
+            },
+            {
+              "playerId": "3804bc51-d666-40b1-9182-a83525240a09",
+              "username": "LALA",
+              "role": "PARTICIPANT",
+              "optionId": "D"
+            }
+          ]
+        },
+        {
+          "situationId": "sit_005",
+          "situationTitle": "ENCUENTRO CON NERÓN",
+          "leaderChoice": "C",
+          "predictedChoice": "D",
+          "isAligned": false,
+          "consequenceText": "Consecuencia placeholder: la historia se ajusta según \"LO RETÁS\".",
+          "playerVotes": [
+            {
+              "playerId": "0074db51-ea64-4a08-a02d-e895bad1156c",
+              "username": "PEPE",
+              "role": "LEADER",
+              "optionId": "C"
+            },
+            {
+              "playerId": "631f2a60-9746-4ea1-8688-60ac6e505497",
+              "username": "MARIO",
+              "role": "PARTICIPANT",
+              "optionId": "B"
+            },
+            {
+              "playerId": "3804bc51-d666-40b1-9182-a83525240a09",
+              "username": "LALA",
+              "role": "PARTICIPANT",
+              "optionId": "A"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

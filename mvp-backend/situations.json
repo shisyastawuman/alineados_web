@@ -1,0 +1,190 @@
+{
+  "situations": [
+    {
+      "id": "sit_001",
+      "title": "Dilema",
+      "description": "¿Qué decidís?",
+      "options": [
+        {
+          "id": "A",
+          "label": "A. Estrés del líder +1",
+          "metricKey": "stressLeader",
+          "delta": 1
+        },
+        {
+          "id": "B",
+          "label": "B. Performance del líder +1",
+          "metricKey": "performance",
+          "delta": 1
+        },
+        {
+          "id": "C",
+          "label": "C. Vínculo con el líder +1",
+          "metricKey": "relationship",
+          "delta": 1
+        },
+        {
+          "id": "D",
+          "label": "D. Estrés de los juniors -1",
+          "metricKey": "stressJunior",
+          "delta": -1
+        }
+      ]
+    },
+    {
+      "id": "sit_002",
+      "title": "Encuentro inesperado",
+      "description": "¿Qué hacés?",
+      "options": [
+        {
+          "id": "A",
+          "label": "A. Estrés del líder -2",
+          "metricKey": "stressLeader",
+          "delta": -2
+        },
+        {
+          "id": "B",
+          "label": "B. Performance del líder +1",
+          "metricKey": "performance",
+          "delta": 1
+        },
+        {
+          "id": "C",
+          "label": "C. Vínculo con el líder +2",
+          "metricKey": "relationship",
+          "delta": 2
+        },
+        {
+          "id": "D",
+          "label": "D. Estrés de los juniors sin cambios",
+          "metricKey": "stressJunior",
+          "delta": 2
+        }
+      ]
+    },
+    {
+      "id": "sit_003",
+      "title": "Decisión extrema",
+      "description": "¿Qué preferís?",
+      "options": [
+        {
+          "id": "A",
+          "label": "A. Estrés del líder +3",
+          "metricKey": "stressLeader",
+          "delta": 3
+        },
+        {
+          "id": "B",
+          "label": "B. Performance del líder -1",
+          "metricKey": "performance",
+          "delta": -1
+        },
+        {
+          "id": "C",
+          "label": "C. Estrés de los juniors -1",
+          "metricKey": "stressJunior",
+          "delta": -1
+        },
+        {
+          "id": "D",
+          "label": "D. Vínculo con el líder +3",
+          "metricKey": "relationship",
+          "delta": 3
+        }
+      ]
+    },
+    {
+      "id": "sit_004",
+      "title": "La última prueba",
+      "description": "¿Sobrevivirás?",
+      "options": [
+        {
+          "id": "A",
+          "label": "Estrés del líder +3",
+          "metricKey": "stressLeader",
+          "delta": 3
+        },
+        {
+          "id": "B",
+          "label": "Estrés del líder -3",
+          "metricKey": "stressLeader",
+          "delta": -3
+        },
+        {
+          "id": "C",
+          "label": "Vinculo con el líder +3",
+          "metricKey": "relationship",
+          "delta": 3
+        },
+        {
+          "id": "D",
+          "label": "Vinculo con el líder -3",
+          "metricKey": "relationship",
+          "delta": -3
+        }
+      ]
+    },
+    {
+      "id": "sit_005",
+      "title": "ENCUENTRO CON NERÓN",
+      "description": "TE ENCONTRÁS CON NERÓN INESPERADAMENTE.",
+      "options": [
+        {
+          "id": "A",
+          "label": "LO SALUDÁS",
+          "metricKey": "performance",
+          "delta": -2
+        },
+        {
+          "id": "B",
+          "label": "LO IGNORÁS",
+          "metricKey": "relationship",
+          "delta": 1
+        },
+        {
+          "id": "C",
+          "label": "LO RETÁS",
+          "metricKey": "stressLeader",
+          "delta": 2
+        },
+        {
+          "id": "D",
+          "label": "PEGÁS MEDIA VUELTA",
+          "metricKey": "performance",
+          "delta": 3
+        }
+      ]
+    },
+    {
+      "id": "sit_006",
+      "title": "ENCUENTRO CON ANDRÉS",
+      "description": "ANDRÉS ENTRA EN LA SALA. QUÉ HACÉS?",
+      "options": [
+        {
+          "id": "A",
+          "label": "LE PEGÁS UN BIFE",
+          "metricKey": "stressLeader",
+          "delta": 1
+        },
+        {
+          "id": "B",
+          "label": "LE DAS UN ABRAZO",
+          "metricKey": "performance",
+          "delta": -2
+        },
+        {
+          "id": "C",
+          "label": "LO ECHÁS",
+          "metricKey": "relationship",
+          "delta": 2
+        },
+        {
+          "id": "D",
+          "label": "LO IGNORÁS",
+          "metricKey": "stressJunior",
+          "delta": 0
+        }
+      ]
+    }
+  ]
+}
