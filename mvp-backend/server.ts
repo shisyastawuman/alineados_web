@@ -8,6 +8,18 @@ import path from 'path';
 import { appendFinishedGame, getGameById, listGamesForAdmin } from './lib/finishedGamesStore.js';
 import { buildGameAnalytics } from './lib/analytics.js';
 import { buildAnalyticsPdfBuffer } from './lib/reportPdf.js';
+import {
+  createDefaultMetrics,
+  hasDefeatMetrics,
+  type GameMetrics,
+  type MetricKey
+} from './lib/metrics.js';
+import {
+  applyResolvedOutcomeToMetrics,
+  parseSituationOption,
+  resolveSituationOption,
+  type SituationOption
+} from './lib/situationOptions.js';
 
 const PORT = Number(process.env.PORT ?? 3000);
 const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN ?? 'http://localhost:5173';
@@ -27,34 +39,18 @@ const io = new Server(httpServer, {
 });
 
 type Role = 'LEADER' | 'PARTICIPANT' | 'SPECTATOR';
-type RoomStatus = 'LOBBY' | 'VOTING' | 'RESULTS' | 'ANTICIPATION' | 'CONSEQUENCES' | 'END';
-type MetricKey = 'stressLeader' | 'performance' | 'relationship' | 'stressJunior';
-
-interface GameMetrics {
-  stressLeader: number;
-  performance: number;
-  relationship: number;
-  stressJunior: number;
-}
-
+type RoomStatus = 'LOBBY' | 'VOTING' | 'RESULTS' | 'ANTICIPATION' | 'CONSEQUENCES' | 'END' | 'WIN' | 'LOSE';
 interface Player {
   id: string;
   username: string;
   role: Role;
 }
 
-interface Option {
-  id: string;
-  label: string;
-  metricKey: MetricKey;
-  delta: number;
-}
-
 interface Situation {
   id: string;
   title: string;
   description: string;
-  options: Option[];
+  options: SituationOption[];
 }
 
 interface RoundHistory {
@@ -104,8 +100,14 @@ const situationsPath = path.join(process.cwd(), 'situations.json');
 
 const loadSituations = (): Situation[] => {
   const data = fs.readFileSync(situationsPath, 'utf-8');
-  const config = JSON.parse(data) as { situations: Situation[] };
-  return config.situations;
+  const config = JSON.parse(data) as { situations: unknown[] };
+  return config.situations.map((rawSituation) => {
+    const validated = validateSituationPayload(rawSituation);
+    if (!validated.valid) {
+      throw new Error(`situations.json inválido: ${validated.error}`);
+    }
+    return validated.situation;
+  });
 };
 
 const dbRooms = new Map<string, Room>();
@@ -154,25 +156,13 @@ const validateSituationPayload = (payload: unknown): { valid: true; situation: S
     return { valid: false, error: 'La situación debe incluir id, título, descripción y al menos 2 opciones.' };
   }
 
-  const metricKeys: MetricKey[] = ['stressLeader', 'performance', 'relationship', 'stressJunior'];
-  const parsedOptions: Option[] = [];
+  const parsedOptions: SituationOption[] = [];
   for (const option of options) {
-    if (!option || typeof option !== 'object') {
-      return { valid: false, error: 'Opción inválida.' };
+    const parsed = parseSituationOption(option);
+    if (!parsed.ok) {
+      return { valid: false, error: parsed.error };
     }
-    const rawOption = option as Partial<Option>;
-    if (!rawOption.id || !rawOption.label || !rawOption.metricKey || typeof rawOption.delta !== 'number') {
-      return { valid: false, error: 'Cada opción debe incluir id, label, metricKey y delta numérico.' };
-    }
-    if (!metricKeys.includes(rawOption.metricKey)) {
-      return { valid: false, error: `metricKey inválido: ${rawOption.metricKey}` };
-    }
-    parsedOptions.push({
-      id: String(rawOption.id),
-      label: String(rawOption.label),
-      metricKey: rawOption.metricKey,
-      delta: Number(rawOption.delta)
-    });
+    parsedOptions.push(parsed.option);
   }
 
   return {
@@ -235,6 +225,32 @@ const isAllVoted = (room: Room): boolean => {
   return votingPlayers.length > 0 && votingPlayers.every((p) => room.choices.has(p.id));
 };
 
+const isTerminalRoomStatus = (status: RoomStatus): boolean => {
+  return status === 'END' || status === 'WIN' || status === 'LOSE';
+};
+
+const finalizeGame = (room: Room, outcome: 'WIN' | 'LOSE'): void => {
+  room.status = outcome;
+  const record = appendFinishedGame({
+    roomCode: room.code,
+    adminId: room.adminId,
+    players: room.players.map((player) => ({ ...player })),
+    initialMetrics: { ...room.initialMetrics },
+    finalMetrics: { ...room.metrics },
+    alignmentHits: room.alignmentHits,
+    roundHistory: room.roundHistory.map((round) => ({
+      situationId: round.situationId,
+      situationTitle: round.situationTitle || round.situationId,
+      leaderChoice: round.leaderChoice,
+      predictedChoice: round.predictedChoice,
+      isAligned: round.isAligned,
+      consequenceText: round.consequenceText,
+      playerVotes: (round.playerVotes ?? []).map((vote) => ({ ...vote }))
+    }))
+  });
+  room.lastFinishedGameId = record.id;
+};
+
 const getChoicesByPlayer = (room: Room) => {
   return room.players
     .filter((player) => player.role !== 'SPECTATOR')
@@ -282,7 +298,7 @@ const getRoomData = (room: Room, viewerPlayerId?: string, includeChoicesByPlayer
     situationLibrary: includeChoicesByPlayer ? room.situationLibrary : undefined,
     configuredSituationIds: includeChoicesByPlayer ? room.configuredSituationIds : undefined,
     randomizeSituations: includeChoicesByPlayer ? room.randomizeSituations : undefined,
-    ...(includeChoicesByPlayer && room.status === 'END'
+    ...(includeChoicesByPlayer && isTerminalRoomStatus(room.status)
       ? { lastFinishedGameId: room.lastFinishedGameId ?? null }
       : {})
   };
@@ -376,18 +392,8 @@ app.post('/api/rooms', (_req: Request, res: Response) => {
     currentAnticipationCorrect: null,
     currentConsequenceText: null,
     currentMetricImpact: null,
-    metrics: {
-      stressLeader: 0,
-      performance: 0,
-      relationship: 0,
-      stressJunior: 0
-    },
-    initialMetrics: {
-      stressLeader: 0,
-      performance: 0,
-      relationship: 0,
-      stressJunior: 0
-    },
+    metrics: createDefaultMetrics(),
+    initialMetrics: createDefaultMetrics(),
     alignmentHits: 0,
     roundHistory: [],
     connectedPlayerIds: new Set(),
@@ -542,8 +548,8 @@ app.post('/api/rooms/:code/start', (req: Request, res: Response): void => {
   room.currentAnticipationCorrect = null;
   room.currentConsequenceText = null;
   room.currentMetricImpact = null;
-  room.metrics = { stressLeader: 0, performance: 0, relationship: 0, stressJunior: 0 };
-  room.initialMetrics = { ...room.metrics };
+  room.metrics = createDefaultMetrics();
+  room.initialMetrics = createDefaultMetrics();
 
   emitRoomUpdate(room);
   res.status(200).json({ message: 'Juego comenzado', room: getRoomData(room) });
@@ -812,24 +818,24 @@ app.post('/api/rooms/:code/admin/apply-consequence', (req: Request, res: Respons
   const currentSituation = getCurrentSituation(room);
   const leaderChoice = getLeaderChoice(room);
   const leaderOption = currentSituation?.options.find((opt) => opt.id === leaderChoice) ?? null;
-  const choiceLabel = leaderOption?.label ?? 'Sin elección del líder';
 
   if (leaderOption) {
-    const previousValue = room.metrics[leaderOption.metricKey];
-    const updatedValue = previousValue + leaderOption.delta;
-    room.metrics[leaderOption.metricKey] = updatedValue;
-    room.currentMetricImpact = {
-      metricKey: leaderOption.metricKey,
-      delta: leaderOption.delta,
-      previousValue,
-      updatedValue
-    };
+    const outcome = resolveSituationOption(leaderOption, room.metrics);
+    room.metrics = applyResolvedOutcomeToMetrics(room.metrics, outcome);
+    room.currentConsequenceText = outcome.narrative;
+    room.currentMetricImpact =
+      outcome.metricKey && outcome.previousValue != null && outcome.updatedValue != null
+        ? {
+            metricKey: outcome.metricKey,
+            delta: outcome.delta,
+            previousValue: outcome.previousValue,
+            updatedValue: outcome.updatedValue
+          }
+        : null;
   } else {
     room.currentMetricImpact = null;
+    room.currentConsequenceText = 'Sin elección del líder: no se aplicaron consecuencias.';
   }
-
-  room.currentConsequenceText = `Consecuencia placeholder: la historia se ajusta según "${choiceLabel}".`;
-  room.status = 'CONSEQUENCES';
 
   const historyItem: RoundHistory = {
     situationId: currentSituation?.id ?? `situation-${room.currentSituationIndex}`,
@@ -841,7 +847,7 @@ app.post('/api/rooms/:code/admin/apply-consequence', (req: Request, res: Respons
     playerVotes: getChoicesByPlayer(room)
   };
   room.roundHistory.push(historyItem);
-
+  room.status = 'CONSEQUENCES';
   emitRoomUpdate(room);
   res.status(200).json({ message: 'Consecuencia aplicada', room: getRoomData(room, undefined, true) });
 });
@@ -857,32 +863,25 @@ app.post('/api/rooms/:code/admin/next', (req: Request, res: Response): void => {
   const room = getRoomOr404(code, res);
   if (!room) return;
   if (!validateAdmin(room, adminId, res)) return;
+  if (isTerminalRoomStatus(room.status)) {
+    res.status(409).json({ error: 'La partida ya finalizó.' });
+    return;
+  }
   if (room.status !== 'CONSEQUENCES') {
     res.status(409).json({ error: 'Solo se puede avanzar desde CONSEQUENCES.' });
     return;
   }
 
+  if (hasDefeatMetrics(room.metrics)) {
+    finalizeGame(room, 'LOSE');
+    emitRoomUpdate(room);
+    res.status(200).json({ message: 'Derrota: una métrica cayó por debajo de 0', room: getRoomData(room, undefined, true) });
+    return;
+  }
+
   const nextSituationIndex = room.currentSituationIndex + 1;
   if (nextSituationIndex >= room.situations.length) {
-    room.status = 'END';
-    const record = appendFinishedGame({
-      roomCode: room.code,
-      adminId: room.adminId,
-      players: room.players.map((player) => ({ ...player })),
-      initialMetrics: { ...room.initialMetrics },
-      finalMetrics: { ...room.metrics },
-      alignmentHits: room.alignmentHits,
-      roundHistory: room.roundHistory.map((round) => ({
-        situationId: round.situationId,
-        situationTitle: round.situationTitle || round.situationId,
-        leaderChoice: round.leaderChoice,
-        predictedChoice: round.predictedChoice,
-        isAligned: round.isAligned,
-        consequenceText: round.consequenceText,
-        playerVotes: (round.playerVotes ?? []).map((vote) => ({ ...vote }))
-      }))
-    });
-    room.lastFinishedGameId = record.id;
+    finalizeGame(room, 'WIN');
   } else {
     room.currentSituationIndex = nextSituationIndex;
     room.status = 'VOTING';

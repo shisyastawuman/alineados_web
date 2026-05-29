@@ -1,6 +1,119 @@
 {
   "games": [
     {
+      "id": "e96fc517-acc3-4880-906f-0f37b0766f50",
+      "finishedAt": "2026-05-28T20:49:43.241Z",
+      "roomCode": "80AE22",
+      "adminId": "5d3b4973-e573-498d-8d84-23b4f2dae41d",
+      "players": [
+        {
+          "id": "221a9e32-a698-4512-91e3-b8a8c88ffda0",
+          "username": "Pipi",
+          "role": "PARTICIPANT"
+        },
+        {
+          "id": "2fceaaa0-3e5c-42ac-89a0-65e43e207417",
+          "username": "Marcos",
+          "role": "LEADER"
+        }
+      ],
+      "initialMetrics": {
+        "stressLeader": 3,
+        "performance": 3,
+        "bondJunior1": 3,
+        "stressJunior1": 3,
+        "bondJunior2": 3,
+        "stressJunior2": 3,
+        "bondJunior3": 3,
+        "stressJunior3": 3,
+        "bondJunior4": 3,
+        "stressJunior4": 3,
+        "bondMentor": 3
+      },
+      "finalMetrics": {
+        "stressLeader": 3,
+        "performance": 3,
+        "bondJunior1": 3,
+        "stressJunior1": -1,
+        "bondJunior2": 3,
+        "stressJunior2": 3,
+        "bondJunior3": 3,
+        "stressJunior3": 3,
+        "bondJunior4": 3,
+        "stressJunior4": 3,
+        "bondMentor": 3
+      },
+      "alignmentHits": 2,
+      "roundHistory": [
+        {
+          "situationId": "sit_001",
+          "situationTitle": "Dilema",
+          "leaderChoice": "A",
+          "predictedChoice": "A",
+          "isAligned": true,
+          "consequenceText": "Estaba alto, lo bajamos.",
+          "playerVotes": [
+            {
+              "playerId": "221a9e32-a698-4512-91e3-b8a8c88ffda0",
+              "username": "Pipi",
+              "role": "PARTICIPANT",
+              "optionId": "A"
+            },
+            {
+              "playerId": "2fceaaa0-3e5c-42ac-89a0-65e43e207417",
+              "username": "Marcos",
+              "role": "LEADER",
+              "optionId": "A"
+            }
+          ]
+        },
+        {
+          "situationId": "sit_002",
+          "situationTitle": "Dilema",
+          "leaderChoice": "A",
+          "predictedChoice": "A",
+          "isAligned": true,
+          "consequenceText": "Estaba bajo, lo subimos.",
+          "playerVotes": [
+            {
+              "playerId": "221a9e32-a698-4512-91e3-b8a8c88ffda0",
+              "username": "Pipi",
+              "role": "PARTICIPANT",
+              "optionId": "A"
+            },
+            {
+              "playerId": "2fceaaa0-3e5c-42ac-89a0-65e43e207417",
+              "username": "Marcos",
+              "role": "LEADER",
+              "optionId": "A"
+            }
+          ]
+        },
+        {
+          "situationId": "sit_003",
+          "situationTitle": "Dilema",
+          "leaderChoice": "D",
+          "predictedChoice": "C",
+          "isAligned": false,
+          "consequenceText": "Junior 1 bajó demasiado su estrés.",
+          "playerVotes": [
+            {
+              "playerId": "221a9e32-a698-4512-91e3-b8a8c88ffda0",
+              "username": "Pipi",
+              "role": "PARTICIPANT",
+              "optionId": "D"
+            },
+            {
+              "playerId": "2fceaaa0-3e5c-42ac-89a0-65e43e207417",
+              "username": "Marcos",
+              "role": "LEADER",
+              "optionId": "D"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "id": "ec1cdc29-c602-43f8-90aa-9c14f76437d1",
       "finishedAt": "2026-05-15T18:19:20.349Z",
       "roomCode": "982AC8",

@@ -1,4 +1,5 @@
-import type { FinishedGameRecord, GameMetrics, MetricKey, RoundHistorySnapshot } from './gameTypes.js';
+import type { FinishedGameRecord, GameMetrics, RoundHistorySnapshot } from './gameTypes.js';
+import { metricKeys, normalizeGameMetrics, type MetricKey } from './metrics.js';
 
 export interface SituationAnalyticsRow {
   situationIndex: number;
@@ -32,8 +33,6 @@ export interface GameAnalytics {
   nonLeaderPlayers: NonLeaderPlayerAnalytics[];
   situations: SituationAnalyticsRow[];
 }
-
-const metricKeys: MetricKey[] = ['stressLeader', 'performance', 'relationship', 'stressJunior'];
 
 const pluralityAmongOthers = (votes: RoundHistorySnapshot['playerVotes'], excludePlayerId: string): string | null => {
   const counts = new Map<string, number>();
@@ -132,12 +131,8 @@ export const buildGameAnalytics = (game: FinishedGameRecord): GameAnalytics => {
     };
   });
 
-  const initialMetrics = { ...game.initialMetrics };
-  const finalMetrics = { ...game.finalMetrics };
-  for (const key of metricKeys) {
-    if (typeof initialMetrics[key] !== 'number') initialMetrics[key] = 0;
-    if (typeof finalMetrics[key] !== 'number') finalMetrics[key] = 0;
-  }
+  const initialMetrics = normalizeGameMetrics(game.initialMetrics as Record<string, unknown>);
+  const finalMetrics = normalizeGameMetrics(game.finalMetrics as Record<string, unknown>);
 
   return {
     gameId: game.id,

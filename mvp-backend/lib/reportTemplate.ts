@@ -1,15 +1,22 @@
 import fs from 'fs';
 import path from 'path';
 import type { GameAnalytics } from './analytics.js';
-import type { MetricKey } from './gameTypes.js';
+import { metricKeys, type MetricKey } from './metrics.js';
 
 const templatePath = path.join(process.cwd(), 'report-template.json');
 
 const metricLabels: Record<MetricKey, string> = {
   stressLeader: 'Estrés del líder',
   performance: 'Performance del líder',
-  relationship: 'Vínculo con el líder',
-  stressJunior: 'Estrés de los juniors'
+  bondJunior1: 'Vínculo Junior 1',
+  bondJunior2: 'Vínculo Junior 2',
+  bondJunior3: 'Vínculo Junior 3',
+  bondJunior4: 'Vínculo Junior 4',
+  bondMentor: 'Vínculo mentor',
+  stressJunior1: 'Estrés Junior 1',
+  stressJunior2: 'Estrés Junior 2',
+  stressJunior3: 'Estrés Junior 3',
+  stressJunior4: 'Estrés Junior 4'
 };
 
 export interface TemplateSection {
@@ -50,9 +57,7 @@ const matchesWhen = (when: true | Record<string, boolean | number>, ctx: Record<
 };
 
 const formatMetrics = (metrics: Record<MetricKey, number>): string => {
-  return (Object.keys(metricLabels) as MetricKey[])
-    .map((key) => `${metricLabels[key]} ${metrics[key]}`)
-    .join(', ');
+  return metricKeys.map((key) => `${metricLabels[key]} ${metrics[key]}`).join(', ');
 };
 
 const interpolate = (text: string, vars: Record<string, string>): string => {

@@ -1,12 +1,8 @@
-export type Role = 'LEADER' | 'PARTICIPANT' | 'SPECTATOR';
-export type MetricKey = 'stressLeader' | 'performance' | 'relationship' | 'stressJunior';
+import type { GameMetrics } from './metrics.js';
 
-export interface GameMetrics {
-  stressLeader: number;
-  performance: number;
-  relationship: number;
-  stressJunior: number;
-}
+export type { GameMetrics, MetricKey } from './metrics.js';
+
+export type Role = 'LEADER' | 'PARTICIPANT' | 'SPECTATOR';
 
 export interface Player {
   id: string;

@@ -1,17 +1,22 @@
 import fs from 'fs';
 import path from 'path';
 import type { GameAnalytics } from './analytics.js';
-import type { MetricKey } from './gameTypes.js';
+import { metricKeys, type MetricKey } from './metrics.js';
 import { renderNarrativeSectionsFromTemplate } from './reportTemplate.js';
 
 const metricLabels: Record<MetricKey, string> = {
   stressLeader: 'Nerón - Estrés',
   performance: 'Nerón - Performance',
-  relationship: 'Vínculo con el líder',
-  stressJunior: 'Júniors - Estrés'
+  bondJunior1: 'Vínculo Junior 1',
+  bondJunior2: 'Vínculo Junior 2',
+  bondJunior3: 'Vínculo Junior 3',
+  bondJunior4: 'Vínculo Junior 4',
+  bondMentor: 'Vínculo mentor',
+  stressJunior1: 'Junior 1 - Estrés',
+  stressJunior2: 'Junior 2 - Estrés',
+  stressJunior3: 'Junior 3 - Estrés',
+  stressJunior4: 'Junior 4 - Estrés'
 };
-
-const metricKeys: MetricKey[] = ['stressLeader', 'performance', 'relationship', 'stressJunior'];
 
 const escapeHtml = (value: string | number | null | undefined): string => {
   return String(value ?? '')

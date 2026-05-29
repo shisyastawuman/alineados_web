@@ -1,24 +1,35 @@
 import { useEffect, useMemo, useState } from 'react';
 import { io } from 'socket.io-client';
+import StatsPanel from './components/StatsPanel';
+import { hasDefeatMetrics, metricLabels, METRIC_MIN, normalizeOfficeMetrics, type MetricKey } from './metrics';
 
 const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 const socket = io(API_BASE_URL);
 
 type Role = 'LEADER' | 'PARTICIPANT' | 'SPECTATOR';
-type RoomStatus = 'LOBBY' | 'VOTING' | 'RESULTS' | 'ANTICIPATION' | 'CONSEQUENCES' | 'END';
-type MetricKey = 'stressLeader' | 'performance' | 'relationship' | 'stressJunior';
-
+type RoomStatus = 'LOBBY' | 'VOTING' | 'RESULTS' | 'ANTICIPATION' | 'CONSEQUENCES' | 'END' | 'WIN' | 'LOSE';
 interface Player {
   id: string;
   username: string;
   role: Role;
 }
 
+interface OptionAssessment {
+  metricKey: MetricKey;
+  targetValue: number;
+}
+
+interface OptionConsequence {
+  metricKey: MetricKey | null;
+  delta: number;
+  narrative: string;
+}
+
 interface Option {
   id: string;
   label: string;
-  metricKey: MetricKey;
-  delta: number;
+  assessment?: OptionAssessment | null;
+  consequences: OptionConsequence[];
 }
 
 interface Situation {
@@ -117,21 +128,142 @@ interface SessionState {
   username: string | null;
 }
 
+interface ConsequenceForm {
+  metricKey: MetricKey | 'none';
+  delta: string;
+  narrative: string;
+}
+
 interface SituationOptionForm {
   id: string;
   label: string;
-  metricKey: MetricKey;
-  delta: string;
+  hasAssessment: boolean;
+  assessmentMetricKey: MetricKey;
+  assessmentTargetValue: string;
+  consequenceA: ConsequenceForm;
+  consequenceB: ConsequenceForm;
 }
 
 const FIXED_OPTION_IDS: Array<'A' | 'B' | 'C' | 'D'> = ['A', 'B', 'C', 'D'];
 
+const createEmptyConsequence = (metricKey: MetricKey | 'none' = 'stressLeader'): ConsequenceForm => ({
+  metricKey,
+  delta: '0',
+  narrative: ''
+});
+
 const createDefaultSituationOptions = (): SituationOptionForm[] => [
-  { id: 'A', label: '', metricKey: 'stressLeader', delta: '0' },
-  { id: 'B', label: '', metricKey: 'performance', delta: '0' },
-  { id: 'C', label: '', metricKey: 'relationship', delta: '0' },
-  { id: 'D', label: '', metricKey: 'stressJunior', delta: '0' }
+  {
+    id: 'A',
+    label: '',
+    hasAssessment: false,
+    assessmentMetricKey: 'bondJunior1',
+    assessmentTargetValue: '3',
+    consequenceA: createEmptyConsequence('stressLeader'),
+    consequenceB: createEmptyConsequence('stressLeader')
+  },
+  {
+    id: 'B',
+    label: '',
+    hasAssessment: false,
+    assessmentMetricKey: 'bondJunior1',
+    assessmentTargetValue: '3',
+    consequenceA: createEmptyConsequence('performance'),
+    consequenceB: createEmptyConsequence('performance')
+  },
+  {
+    id: 'C',
+    label: '',
+    hasAssessment: false,
+    assessmentMetricKey: 'bondJunior1',
+    assessmentTargetValue: '3',
+    consequenceA: createEmptyConsequence('bondJunior1'),
+    consequenceB: createEmptyConsequence('bondJunior1')
+  },
+  {
+    id: 'D',
+    label: '',
+    hasAssessment: false,
+    assessmentMetricKey: 'bondJunior1',
+    assessmentTargetValue: '3',
+    consequenceA: createEmptyConsequence('stressJunior1'),
+    consequenceB: createEmptyConsequence('stressJunior1')
+  }
 ];
+
+const parseConsequenceForm = (consequence: ConsequenceForm): OptionConsequence => {
+  const metricKey = consequence.metricKey === 'none' ? null : consequence.metricKey;
+  return {
+    metricKey,
+    delta: metricKey == null ? 0 : Number(consequence.delta),
+    narrative: consequence.narrative.trim()
+  };
+};
+
+const buildOptionFromForm = (form: SituationOptionForm): Option => {
+  if (form.hasAssessment) {
+    return {
+      id: form.id,
+      label: form.label.trim(),
+      assessment: {
+        metricKey: form.assessmentMetricKey,
+        targetValue: Number(form.assessmentTargetValue)
+      },
+      consequences: [parseConsequenceForm(form.consequenceA), parseConsequenceForm(form.consequenceB)]
+    };
+  }
+  return {
+    id: form.id,
+    label: form.label.trim(),
+    consequences: [parseConsequenceForm(form.consequenceA)]
+  };
+};
+
+const loadConsequenceForm = (consequence?: OptionConsequence): ConsequenceForm => ({
+  metricKey: consequence?.metricKey ?? 'none',
+  delta: String(consequence?.delta ?? 0),
+  narrative: consequence?.narrative ?? ''
+});
+
+const loadOptionForm = (optionId: string, option?: Option): SituationOptionForm => {
+  const legacy = option as Option & { metricKey?: MetricKey; delta?: number };
+  if (option?.consequences?.length) {
+    return {
+      id: optionId,
+      label: option.label ?? '',
+      hasAssessment: Boolean(option.assessment),
+      assessmentMetricKey: option.assessment?.metricKey ?? 'bondJunior1',
+      assessmentTargetValue: String(option.assessment?.targetValue ?? 3),
+      consequenceA: loadConsequenceForm(option.consequences[0]),
+      consequenceB: loadConsequenceForm(option.consequences[1] ?? option.consequences[0])
+    };
+  }
+  if (legacy?.metricKey) {
+    const consequence = loadConsequenceForm({
+      metricKey: legacy.metricKey,
+      delta: legacy.delta ?? 0,
+      narrative: `La oficina reacciona tras "${legacy.label ?? optionId}".`
+    });
+    return {
+      id: optionId,
+      label: legacy.label ?? '',
+      hasAssessment: false,
+      assessmentMetricKey: 'bondJunior1',
+      assessmentTargetValue: '3',
+      consequenceA: consequence,
+      consequenceB: consequence
+    };
+  }
+  return {
+    id: optionId,
+    label: '',
+    hasAssessment: false,
+    assessmentMetricKey: 'bondJunior1',
+    assessmentTargetValue: '3',
+    consequenceA: createEmptyConsequence(),
+    consequenceB: createEmptyConsequence()
+  };
+};
 
 const getLowestAvailableSituationId = (catalog: Situation[]): string => {
   const used = new Set<number>();
@@ -156,12 +288,10 @@ const SESSION_STORAGE_PREFIX = 'alineados_session_v1:';
 const LAST_ADMIN_STORAGE_KEY = 'alineados_last_admin_id';
 const getSessionStorageKey = (roomCode: string): string => `${SESSION_STORAGE_PREFIX}${roomCode}`;
 
-const metricLabels: Record<MetricKey, string> = {
-  stressLeader: 'Estrés del líder',
-  performance: 'Performance del líder',
-  relationship: 'Vínculo con el líder',
-  stressJunior: 'Estrés de los juniors'
-};
+const withNormalizedMetrics = (room: RoomView): RoomView => ({
+  ...room,
+  metrics: normalizeOfficeMetrics(room.metrics)
+});
 
 export default function App() {
   const [session, setSession] = useState<SessionState>(emptySession);
@@ -228,7 +358,7 @@ export default function App() {
     if (adminId) params.set('adminId', adminId);
     const query = params.toString() ? `?${params.toString()}` : '';
     const data = await apiRequest<{ room: RoomView }>(`/api/rooms/${roomCode}${query}`);
-    setRoom(data.room);
+    setRoom(withNormalizedMetrics(data.room));
   };
 
   useEffect(() => {
@@ -289,7 +419,7 @@ export default function App() {
 
   useEffect(() => {
     const onRoomUpdate = (payload: RoomView) => {
-      setRoom(payload);
+      setRoom(withNormalizedMetrics(payload));
     };
 
     socket.on('room_state_updated', onRoomUpdate);
@@ -339,8 +469,17 @@ export default function App() {
     }
   }, [room?.currentMetricImpact]);
 
+  const isTerminalStatus =
+    room?.status === 'END' || room?.status === 'WIN' || room?.status === 'LOSE';
+
   useEffect(() => {
-    if (room?.status !== 'END' || !isAdmin || !session.adminId || !room.lastFinishedGameId) {
+    if (room?.status === 'WIN' || room?.status === 'LOSE') {
+      setStatsViewOpen(true);
+    }
+  }, [room?.status]);
+
+  useEffect(() => {
+    if (!isTerminalStatus || !isAdmin || !session.adminId || !room?.lastFinishedGameId) {
       setRoomEndAnalytics(null);
       return;
     }
@@ -379,7 +518,7 @@ export default function App() {
       setSession({ roomCode: data.roomCode, adminId: data.adminId, playerId: null, role: null, username: 'Admin' });
       setRoomCodeInput(data.roomCode);
       setRoomLink(`${window.location.origin}/room/${data.roomCode}`);
-      setRoom(data.room);
+      setRoom(withNormalizedMetrics(data.room));
     } catch (createError: unknown) {
       setError(createError instanceof Error ? createError.message : 'No se pudo crear la sala');
     } finally {
@@ -403,7 +542,7 @@ export default function App() {
       });
       setSession({ roomCode, adminId: null, playerId: data.player.id, role: data.player.role, username: data.player.username });
       window.history.replaceState(null, '', `/room/${roomCode}`);
-      setRoom(data.room);
+      setRoom(withNormalizedMetrics(data.room));
       setPendingOptionId('');
     } catch (joinError: unknown) {
       setError(joinError instanceof Error ? joinError.message : 'No se pudo unir a la sala');
@@ -422,7 +561,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ adminId: session.adminId, ...(extraBody ?? {}) })
       });
-      setRoom(data.room);
+      setRoom(withNormalizedMetrics(data.room));
     } catch (actionError: unknown) {
       setError(actionError instanceof Error ? actionError.message : 'No se pudo completar acción');
     } finally {
@@ -440,7 +579,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playerId: session.playerId, optionId: pendingOptionId })
       });
-      setRoom(data.room);
+      setRoom(withNormalizedMetrics(data.room));
       setPendingOptionId('');
     } catch (voteError: unknown) {
       setError(voteError instanceof Error ? voteError.message : 'No se pudo registrar voto');
@@ -459,7 +598,7 @@ export default function App() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ playerId: session.playerId })
       });
-      setRoom(data.room);
+      setRoom(withNormalizedMetrics(data.room));
       setPendingOptionId('');
     } catch (unvoteError: unknown) {
       setError(unvoteError instanceof Error ? unvoteError.message : 'No se pudo deshacer voto');
@@ -574,13 +713,7 @@ export default function App() {
     const trimmedId = situationIdInput.trim();
     const trimmedTitle = situationTitleInput.trim();
     const trimmedDescription = situationDescriptionInput.trim();
-    const parsedOptions = situationOptionsInput
-      .map((option) => ({
-        id: option.id.trim(),
-        label: option.label.trim(),
-        metricKey: option.metricKey,
-        delta: Number(option.delta)
-      }));
+    const parsedOptions = situationOptionsInput.map((option) => buildOptionFromForm(option));
 
     if (!trimmedId || !trimmedTitle || !trimmedDescription) {
       setError('Completá id, título y descripción.');
@@ -590,8 +723,22 @@ export default function App() {
       setError('Cada opción A/B/C/D necesita un texto.');
       return;
     }
-    if (parsedOptions.some((option) => Number.isNaN(option.delta))) {
-      setError('Todos los impactos (delta) deben ser numéricos.');
+    if (
+      parsedOptions.some(
+        (option) =>
+          option.consequences.some((c) => !c.narrative) ||
+          option.consequences.some((c) => c.metricKey != null && Number.isNaN(c.delta))
+      )
+    ) {
+      setError('Cada consecuencia necesita narrativa; los delta deben ser numéricos.');
+      return;
+    }
+    if (
+      parsedOptions.some(
+        (option) => option.assessment != null && (option.consequences.length !== 2 || Number.isNaN(option.assessment.targetValue))
+      )
+    ) {
+      setError('Con evaluación condicional: target numérico y dos consecuencias.');
       return;
     }
 
@@ -633,63 +780,31 @@ export default function App() {
     setSituationIdInput(situation.id);
     setSituationTitleInput(situation.title);
     setSituationDescriptionInput(situation.description);
-    setSituationOptionsInput(
-      FIXED_OPTION_IDS.map((optionId) => {
-        const option = optionsById.get(optionId);
-        return {
-          id: optionId,
-          label: option?.label ?? '',
-          metricKey: option?.metricKey ?? 'relationship',
-          delta: String(option?.delta ?? 0)
-        };
-      })
-    );
+    setSituationOptionsInput(FIXED_OPTION_IDS.map((optionId) => loadOptionForm(optionId, optionsById.get(optionId))));
   };
 
   const updateSituationOptionField = (
     index: number,
     key: keyof SituationOptionForm,
-    value: string | MetricKey
+    value: string | MetricKey | boolean
   ) => {
     setSituationOptionsInput((prev) => prev.map((option, currentIndex) => (currentIndex === index ? { ...option, [key]: value } : option)));
   };
 
-  const renderStatsPanel = () => {
-    if (!room) return null;
-    return (
-      <section style={{ border: '1px solid #ddd', padding: '1rem' }}>
-        <h2>Estado del juego</h2>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(180px, 1fr))', gap: '0.75rem' }}>
-          {(Object.keys(room.metrics) as MetricKey[]).map((key) => (
-            <div key={key} style={{ border: '1px solid #ddd', borderRadius: 6, padding: '0.6rem' }}>
-              <strong>{metricLabels[key]}</strong>
-              <div style={{ fontSize: '1.2rem' }}>{room.metrics[key]}</div>
-            </div>
-          ))}
-        </div>
-        {room.currentMetricImpact && (
-          <div
-            style={{
-              marginTop: '1rem',
-              padding: '0.7rem',
-              border: '2px solid #2563eb',
-              borderRadius: 6,
-              background: impactPulse ? '#dbeafe' : '#eff6ff',
-              transform: impactPulse ? 'scale(1.02)' : 'scale(1)',
-              transition: 'all 250ms ease'
-            }}
-          >
-            <strong>{metricLabels[room.currentMetricImpact.metricKey]}</strong>{' '}
-            {room.currentMetricImpact.delta > 0 ? `+${room.currentMetricImpact.delta}` : room.currentMetricImpact.delta} (
-            {room.currentMetricImpact.previousValue} {'->'} {room.currentMetricImpact.updatedValue})
-          </div>
-        )}
-      </section>
+  const updateConsequenceField = (
+    optionIndex: number,
+    which: 'consequenceA' | 'consequenceB',
+    key: keyof ConsequenceForm,
+    value: string | MetricKey | 'none'
+  ) => {
+    setSituationOptionsInput((prev) =>
+      prev.map((option, currentIndex) =>
+        currentIndex === optionIndex ? { ...option, [which]: { ...option[which], [key]: value } } : option
+      )
     );
   };
 
   const renderAnalyticsDashboard = (analytics: GameAnalytics, options?: { showPdfDownload?: boolean }) => {
-    const maxMetric = Math.max(1, ...((Object.keys(metricLabels) as MetricKey[]).map((key) => Math.abs(analytics.finalMetrics[key]))));
     return (
       <div style={{ display: 'grid', gap: '1rem' }}>
         <section style={{ border: '1px solid #ddd', padding: '1rem' }}>
@@ -870,8 +985,8 @@ export default function App() {
           <section style={{ border: '1px solid #ddd', padding: '1rem', display: 'grid', gap: '0.75rem' }}>
             <h2>{editingSituationId ? 'Editar situación' : 'Nueva situación'}</h2>
             <p style={{ margin: 0, fontSize: '0.92rem', color: '#334155' }}>
-              Guía: el id se asigna automáticamente con el formato <code>sit_XXX</code> (número disponible más bajo).
-              Cada situación tiene siempre 4 opciones fijas (A, B, C, D), con texto, métrica y delta numérico.
+              Guía: id automático <code>sit_XXX</code>. Cada opción (A–D) tiene hasta 2 consecuencias según una evaluación opcional
+              (métrica ≥ valor objetivo → consecuencia 1; si no, consecuencia 2).
             </p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(220px, 1fr))', gap: '0.7rem' }}>
               <label>
@@ -908,15 +1023,15 @@ export default function App() {
               {situationOptionsInput.map((option, index) => (
                 <div
                   key={`option-form-${index}`}
-                  style={{ border: '1px solid #ddd', padding: '0.6rem', borderRadius: 6, display: 'grid', gap: '0.45rem' }}
+                  style={{ border: '1px solid #ddd', padding: '0.75rem', borderRadius: 6, display: 'grid', gap: '0.55rem' }}
                 >
-                  <div style={{ display: 'grid', gridTemplateColumns: '0.5fr 2fr 1.2fr 0.8fr', gap: '0.45rem', alignItems: 'end' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '0.4fr 1fr', gap: '0.5rem', alignItems: 'end' }}>
                     <div>
                       <small>ID</small>
                       <div><strong>{option.id}</strong></div>
                     </div>
                     <label>
-                      Texto
+                      Texto de la opción
                       <input
                         value={option.label}
                         onChange={(event) => updateSituationOptionField(index, 'label', event.target.value)}
@@ -924,30 +1039,109 @@ export default function App() {
                         style={{ width: '100%' }}
                       />
                     </label>
-                    <label>
-                      Métrica
-                      <select
-                        value={option.metricKey}
-                        onChange={(event) => updateSituationOptionField(index, 'metricKey', event.target.value as MetricKey)}
-                        style={{ width: '100%' }}
-                      >
-                        {(Object.keys(metricLabels) as MetricKey[]).map((metricKey) => (
-                          <option key={metricKey} value={metricKey}>{metricLabels[metricKey]}</option>
-                        ))}
-                      </select>
-                    </label>
-                    <label>
-                      Delta
-                      <input
-                        type="number"
-                        step={1}
-                        value={option.delta}
-                        onChange={(event) => updateSituationOptionField(index, 'delta', event.target.value)}
-                        placeholder="0"
-                        style={{ width: '100%' }}
-                      />
-                    </label>
                   </div>
+
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                    <input
+                      type="checkbox"
+                      checked={option.hasAssessment}
+                      onChange={(event) => updateSituationOptionField(index, 'hasAssessment', event.target.checked)}
+                    />
+                    Evaluación condicional (métrica actual ≥ objetivo → consecuencia 1, si no → consecuencia 2)
+                  </label>
+
+                  {option.hasAssessment && (
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 0.5fr', gap: '0.5rem' }}>
+                      <label>
+                        Métrica a evaluar
+                        <select
+                          value={option.assessmentMetricKey}
+                          onChange={(event) =>
+                            updateSituationOptionField(index, 'assessmentMetricKey', event.target.value as MetricKey)
+                          }
+                          style={{ width: '100%' }}
+                        >
+                          {(Object.keys(metricLabels) as MetricKey[]).map((metricKey) => (
+                            <option key={metricKey} value={metricKey}>
+                              {metricLabels[metricKey]}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Valor objetivo
+                        <input
+                          type="number"
+                          min={METRIC_MIN}
+                          max={5}
+                          step={1}
+                          value={option.assessmentTargetValue}
+                          onChange={(event) => updateSituationOptionField(index, 'assessmentTargetValue', event.target.value)}
+                          style={{ width: '100%' }}
+                        />
+                      </label>
+                    </div>
+                  )}
+
+                  {(['consequenceA', 'consequenceB'] as const)
+                    .filter((which) => which === 'consequenceA' || option.hasAssessment)
+                    .map((which, branchIndex) => (
+                      <div
+                        key={`${option.id}-${which}`}
+                        style={{
+                          border: '1px dashed #cbd5e1',
+                          borderRadius: 6,
+                          padding: '0.55rem',
+                          display: 'grid',
+                          gap: '0.45rem'
+                        }}
+                      >
+                        <strong style={{ fontSize: '0.85rem' }}>
+                          Consecuencia {branchIndex + 1}
+                          {option.hasAssessment ? (branchIndex === 0 ? ' (si cumple)' : ' (si no cumple)') : ''}
+                        </strong>
+                        <label>
+                          Narrativa
+                          <textarea
+                            value={option[which].narrative}
+                            onChange={(event) => updateConsequenceField(index, which, 'narrative', event.target.value)}
+                            rows={2}
+                            style={{ width: '100%' }}
+                            placeholder="Qué sucede en la oficina..."
+                          />
+                        </label>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 0.6fr', gap: '0.45rem' }}>
+                          <label>
+                            Métrica afectada
+                            <select
+                              value={option[which].metricKey}
+                              onChange={(event) =>
+                                updateConsequenceField(index, which, 'metricKey', event.target.value as MetricKey | 'none')
+                              }
+                              style={{ width: '100%' }}
+                            >
+                              <option value="none">Sin cambio de métrica</option>
+                              {(Object.keys(metricLabels) as MetricKey[]).map((metricKey) => (
+                                <option key={metricKey} value={metricKey}>
+                                  {metricLabels[metricKey]}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label>
+                            Delta
+                            <input
+                              type="number"
+                              step={1}
+                              value={option[which].delta}
+                              disabled={option[which].metricKey === 'none'}
+                              onChange={(event) => updateConsequenceField(index, which, 'delta', event.target.value)}
+                              style={{ width: '100%' }}
+                            />
+                          </label>
+                        </div>
+                      </div>
+                    ))}
                 </div>
               ))}
             </div>
@@ -1011,11 +1205,13 @@ export default function App() {
       <p>Sesion: <strong>{isAdmin ? 'ADMIN' : me?.role ?? session.role}</strong> {session.username ? `(${session.username})` : ''}</p>
       <p>
         Fase de juego: <strong>{room.status}</strong>
-        {!(room.status === 'LOBBY' && !isAdmin) && <> | Situacion {room.currentSituationIndex + 1}/{room.totalSituations}</>}
+        {!isTerminalStatus && !(room.status === 'LOBBY' && !isAdmin) && (
+          <> | Situacion {room.currentSituationIndex + 1}/{room.totalSituations}</>
+        )}
       </p>
       {error && <div style={{ border: '1px solid #b91c1c', color: '#b91c1c', padding: '0.75rem' }}>{error}</div>}
 
-      {!(room.status === 'LOBBY' && !isAdmin) && (
+      {(isTerminalStatus || !(room.status === 'LOBBY' && !isAdmin)) && (
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <button onClick={() => setStatsViewOpen(false)} disabled={!statsViewOpen}>Situación</button>
           <button onClick={() => setStatsViewOpen(true)} disabled={statsViewOpen}>Oficina</button>
@@ -1043,8 +1239,89 @@ export default function App() {
         )}
       </section>
 
-      {statsViewOpen && renderStatsPanel()}
-      {!statsViewOpen && (
+      {statsViewOpen && room && !isTerminalStatus && (
+        <StatsPanel
+          metrics={room.metrics}
+          currentMetricImpact={room.currentMetricImpact}
+          impactPulse={impactPulse}
+        />
+      )}
+
+      {room.status === 'LOSE' && (
+        <section style={{ border: '2px solid #b91c1c', padding: '1.25rem', borderRadius: 8, background: '#fef2f2' }}>
+          <h2 style={{ color: '#b91c1c', marginTop: 0 }}>Derrota</h2>
+          <p>
+            Tras la última consecuencia, al menos una métrica quedó por debajo de <strong>0</strong>.
+            Las situaciones restantes no se juegan.
+          </p>
+          {room.currentConsequenceText && (
+            <p style={{ fontStyle: 'italic', color: '#7f1d1d' }}>{room.currentConsequenceText}</p>
+          )}
+          {hasDefeatMetrics(room.metrics) && (
+            <p style={{ fontSize: '0.9rem' }}>
+              Métricas en rojo:{' '}
+              {(Object.keys(room.metrics) as MetricKey[])
+                .filter((key) => room.metrics[key] < 0)
+                .map((key) => metricLabels[key])
+                .join(', ') || '—'}
+            </p>
+          )}
+          <StatsPanel
+            metrics={room.metrics}
+            currentMetricImpact={room.currentMetricImpact}
+            impactPulse={impactPulse}
+          />
+          {isAdmin && room.lastFinishedGameId && session.adminId && (
+            <div style={{ marginTop: '1rem' }}>
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(
+                    `${API_BASE_URL}/api/admin/finished-games/${room.lastFinishedGameId}/report.pdf?adminId=${encodeURIComponent(session.adminId!)}`,
+                    '_blank',
+                    'noopener,noreferrer'
+                  )
+                }
+              >
+                Descargar reporte PDF
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {room.status === 'WIN' && (
+        <section style={{ border: '2px solid #16a34a', padding: '1.25rem', borderRadius: 8, background: '#f0fdf4' }}>
+          <h2 style={{ color: '#15803d', marginTop: 0 }}>Victoria</h2>
+          <p>
+            Completaste todas las situaciones sin que ninguna métrica cayera por debajo de <strong>0</strong>.
+          </p>
+          <p>Alineaciones logradas: {room.alignmentHits} de {room.totalSituations}</p>
+          <StatsPanel
+            metrics={room.metrics}
+            currentMetricImpact={room.currentMetricImpact}
+            impactPulse={impactPulse}
+          />
+          {isAdmin && room.lastFinishedGameId && session.adminId && (
+            <div style={{ marginTop: '1rem' }}>
+              <button
+                type="button"
+                onClick={() =>
+                  window.open(
+                    `${API_BASE_URL}/api/admin/finished-games/${room.lastFinishedGameId}/report.pdf?adminId=${encodeURIComponent(session.adminId!)}`,
+                    '_blank',
+                    'noopener,noreferrer'
+                  )
+                }
+              >
+                Descargar reporte PDF
+              </button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {!isTerminalStatus && !statsViewOpen && (
         <>
           {room.status === 'LOBBY' && (
             <section style={{ border: '1px solid #ddd', padding: '1rem' }}>
@@ -1238,9 +1515,18 @@ export default function App() {
                   {room.currentMetricImpact.delta > 0 ? `+${room.currentMetricImpact.delta}` : room.currentMetricImpact.delta}
                 </div>
               )}
+              {hasDefeatMetrics(room.metrics) && (
+                <p style={{ marginTop: '0.75rem', color: '#b91c1c', fontSize: '0.92rem' }}>
+                  Alguna métrica está por debajo de 0. Al continuar, la partida termina en derrota.
+                </p>
+              )}
               {isAdmin ? (
                 <button onClick={() => postAdminAction(`/api/rooms/${session.roomCode}/admin/next`)} disabled={isLoading}>
-                  {room.currentSituationIndex + 1 >= room.totalSituations ? 'Finalizar juego' : 'Siguiente situacion'}
+                  {hasDefeatMetrics(room.metrics)
+                    ? 'Continuar (derrota)'
+                    : room.currentSituationIndex + 1 >= room.totalSituations
+                      ? 'Finalizar juego'
+                      : 'Siguiente situacion'}
                 </button>
               ) : (
                 <p><strong>Instruccion:</strong> revisa el impacto y espera la siguiente ronda.</p>
